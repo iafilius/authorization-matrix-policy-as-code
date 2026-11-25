@@ -1,0 +1,47 @@
+{
+  "after": {
+    "cia_rating": { "confidentiality": "high", "integrity": "low", "availability": "low" },
+    "entries": [
+      {
+        "id": "ACC-501",
+        "principal": "svc-pay-batch",
+        "principal_type": "service_account",
+        "target_resource": "prod-legacy-09",
+        "target_tier": "tier-1",
+        "access_level": "read",
+        "business_owner": "payments-platform-lead",
+        "review_date": "2027-05-01"
+      },
+      {
+        "id": "ACC-502",
+        "principal": "svc-ghost-01",
+        "principal_type": "service_account",
+        "target_resource": "prod-pay-api-01",
+        "target_tier": "tier-1",
+        "access_level": "read",
+        "business_owner": "payments-platform-lead",
+        "review_date": "2027-05-01"
+      }
+    ]
+  },
+  "context": {
+    "evaluated_at": "2026-11-24T18:00:00Z",
+    "accounts": {
+      "svc-pay-batch": {
+        "status": "active",
+        "password_age_days": 140,
+        "days_since_last_use": 125
+      }
+    },
+    "machines": {
+      "prod-legacy-09": {
+        "status": "decommissioned",
+        "cia_rating": { "confidentiality": "high", "integrity": "high", "availability": "low" }
+      },
+      "prod-pay-api-01": {
+        "status": "active",
+        "cia_rating": { "confidentiality": "high", "integrity": "low", "availability": "low" }
+      }
+    }
+  }
+}

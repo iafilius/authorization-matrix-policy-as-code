@@ -1,0 +1,23 @@
+{
+  "before": {
+    "cia_rating": { "confidentiality": "low", "integrity": "low", "availability": "low" },
+    "entries": []
+  },
+  "after": {
+    "cia_rating": { "confidentiality": "low", "integrity": "low", "availability": "low" },
+    "entries": [
+      { "id": "ACC-801", "principal": "svc-batch-01", "principal_type": "service_account", "target_resource": "dev-node-01", "target_tier": "non-prod", "access_level": "read", "business_owner": "data-lead", "review_date": "2027-05-01" },
+      { "id": "ACC-802", "principal": "svc-batch-02", "principal_type": "service_account", "target_resource": "dev-node-02", "target_tier": "non-prod", "access_level": "read", "business_owner": "data-lead", "review_date": "2027-05-01" },
+      { "id": "ACC-803", "principal": "svc-batch-03", "principal_type": "service_account", "target_resource": "dev-node-03", "target_tier": "non-prod", "access_level": "read", "business_owner": "data-lead", "review_date": "2027-05-01" },
+      { "id": "ACC-804", "principal": "svc-batch-04", "principal_type": "service_account", "target_resource": "dev-node-04", "target_tier": "non-prod", "access_level": "read", "business_owner": "data-lead", "review_date": "2027-05-01" },
+      { "id": "ACC-805", "principal": "svc-batch-05", "principal_type": "service_account", "target_resource": "dev-node-05", "target_tier": "non-prod", "access_level": "read", "business_owner": "data-lead", "review_date": "2027-05-01" },
+      { "id": "ACC-806", "principal": "svc-batch-06", "principal_type": "service_account", "target_resource": "dev-node-06", "target_tier": "non-prod", "access_level": "read", "business_owner": "data-lead", "review_date": "2027-05-01" },
+      { "id": "ACC-807", "principal": "svc-batch-07", "principal_type": "service_account", "target_resource": "dev-node-07", "target_tier": "non-prod", "access_level": "read", "business_owner": "data-lead", "review_date": "2027-05-01" },
+      { "id": "ACC-808", "principal": "svc-batch-08", "principal_type": "service_account", "target_resource": "dev-node-08", "target_tier": "non-prod", "access_level": "read", "business_owner": "data-lead", "review_date": "2027-05-01" },
+      { "id": "ACC-809", "principal": "svc-batch-09", "principal_type": "service_account", "target_resource": "dev-node-09", "target_tier": "non-prod", "access_level": "read", "business_owner": "data-lead", "review_date": "2027-05-01" },
+      { "id": "ACC-810", "principal": "svc-batch-10", "principal_type": "service_account", "target_resource": "dev-node-10", "target_tier": "non-prod", "access_level": "read", "business_owner": "data-lead", "review_date": "2027-05-01" },
+      { "id": "ACC-811", "principal": "svc-batch-11", "principal_type": "service_account", "target_resource": "dev-node-11", "target_tier": "non-prod", "access_level": "read", "business_owner": "data-lead", "review_date": "2027-05-01" },
+      { "id": "ACC-812", "principal": "shared-ops-account", "principal_type": "human_standard", "target_resource": "dev-node-01", "target_tier": "non-prod", "access_level": "read", "business_owner": "data-lead", "review_date": "2027-05-01" }
+    ]
+  }
+}

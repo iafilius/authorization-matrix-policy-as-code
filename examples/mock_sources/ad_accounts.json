@@ -1,0 +1,27 @@
+{
+  "svc-pay-01": {
+    "status": "active",
+    "password_age_days": 115,
+    "days_since_last_use": 3
+  },
+  "svc-pay-batch": {
+    "status": "active",
+    "password_age_days": 140,
+    "days_since_last_use": 125
+  },
+  "svc-orders-legacy": {
+    "status": "disabled",
+    "password_age_days": 420,
+    "days_since_last_use": 210
+  },
+  "grp-payments-sre-pam": {
+    "status": "active",
+    "password_age_days": 12,
+    "days_since_last_use": 1
+  },
+  "grp-orders-dev": {
+    "status": "active",
+    "password_age_days": 30,
+    "days_since_last_use": 2
+  }
+}

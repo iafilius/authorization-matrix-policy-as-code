@@ -1,0 +1,26 @@
+{
+  "prod-pay-db-01": {
+    "status": "active",
+    "cia_rating": { "confidentiality": "high", "integrity": "high", "availability": "medium" }
+  },
+  "prod-pay-01": {
+    "status": "active",
+    "cia_rating": { "confidentiality": "high", "integrity": "high", "availability": "high" }
+  },
+  "prod-siem-01": {
+    "status": "active",
+    "cia_rating": { "confidentiality": "high", "integrity": "high", "availability": "high" }
+  },
+  "prod-pay-api-01": {
+    "status": "active",
+    "cia_rating": { "confidentiality": "high", "integrity": "low", "availability": "low" }
+  },
+  "prod-legacy-09": {
+    "status": "decommissioned",
+    "cia_rating": { "confidentiality": "high", "integrity": "high", "availability": "low" }
+  },
+  "dev-orders-api-01": {
+    "status": "active",
+    "cia_rating": { "confidentiality": "low", "integrity": "low", "availability": "low" }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "before": {
+    "cia_rating": { "confidentiality": "high", "integrity": "high", "availability": "high" },
+    "entries": []
+  },
+  "after": {
+    "cia_rating": { "confidentiality": "high", "integrity": "high", "availability": "high" },
+    "group_memberships": {
+      "grp-eng-all": ["grp-release", "grp-audit-parent"],
+      "grp-audit-parent": ["grp-sec-audit"]
+    },
+    "entries": [
+      {
+        "id": "ACC-9001",
+        "principal": "svc-pay-01",
+        "principal_type": "service_account",
+        "target_resource": "prod-pay-*",
+        "target_tier": "tier-1",
+        "access_level": "ssh_sudo",
+        "business_owner": "payments-lead",
+        "review_date": "2027-05-01"
+      },
+      {
+        "id": "ACC-9002",
+        "principal": "grp-release",
+        "principal_type": "pam_jit_group",
+        "target_resource": "prod-pay-01",
+        "target_tier": "tier-0",
+        "access_level": "prod_deploy",
+        "max_session_hours": 4,
+        "business_owner": "payments-lead",
+        "review_date": "2027-05-01"
+      },
+      {
+        "id": "ACC-9003",
+        "principal": "grp-sec-audit",
+        "principal_type": "pam_jit_group",
+        "target_resource": "prod-siem-01",
+        "target_tier": "tier-1",
+        "access_level": "audit_log_admin",
+        "max_session_hours": 4,
+        "business_owner": "sec-lead",
+        "review_date": "2027-05-01"
+      }
+    ]
+  }
+}

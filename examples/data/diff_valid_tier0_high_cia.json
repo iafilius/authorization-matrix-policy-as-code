@@ -1,0 +1,22 @@
+{
+  "before": {
+    "cia_rating": { "confidentiality": "high", "integrity": "high", "availability": "medium" },
+    "entries": []
+  },
+  "after": {
+    "cia_rating": { "confidentiality": "high", "integrity": "high", "availability": "medium" },
+    "entries": [
+      {
+        "id": "ACC-1042",
+        "principal": "grp-payments-sre-pam",
+        "principal_type": "pam_jit_group",
+        "target_resource": "prod-pay-db-01",
+        "target_tier": "tier-0",
+        "access_level": "ssh_sudo",
+        "max_session_hours": 4,
+        "business_owner": "payments-platform-lead",
+        "review_date": "2027-05-01"
+      }
+    ]
+  }
+}

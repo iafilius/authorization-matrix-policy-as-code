@@ -1,0 +1,42 @@
+{
+  "before": {
+    "cia_rating": { "confidentiality": "low", "integrity": "low", "availability": "low" },
+    "entries": [
+      {
+        "id": "ACC-1001",
+        "principal": "grp-orders-dev",
+        "principal_type": "human_standard",
+        "target_resource": "dev-orders-api-01",
+        "target_tier": "non-prod",
+        "access_level": "read",
+        "business_owner": "orders-platform-lead",
+        "review_date": "2027-05-01"
+      },
+      {
+        "id": "ACC-1002",
+        "principal": "svc-orders-legacy",
+        "principal_type": "service_account",
+        "target_resource": "dev-orders-api-01",
+        "target_tier": "non-prod",
+        "access_level": "read",
+        "business_owner": "orders-platform-lead",
+        "review_date": "2027-05-01"
+      }
+    ]
+  },
+  "after": {
+    "cia_rating": { "confidentiality": "low", "integrity": "low", "availability": "low" },
+    "entries": [
+      {
+        "id": "ACC-1001",
+        "principal": "grp-orders-dev",
+        "principal_type": "human_standard",
+        "target_resource": "dev-orders-api-01",
+        "target_tier": "non-prod",
+        "access_level": "read",
+        "business_owner": "orders-platform-lead",
+        "review_date": "2027-05-01"
+      }
+    ]
+  }
+}

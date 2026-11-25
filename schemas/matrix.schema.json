@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Enterprise IAM Authorization Matrix",
+  "description": "Layer 0 schema for enterprise IAM authorization matrices (standalone or before/after diff).",
+  "type": "object",
+  "$defs": {
+    "cia_level": {
+      "type": "string",
+      "enum": ["low", "medium", "high"]
+    },
+    "cia_rating": {
+      "type": "object",
+      "properties": {
+        "confidentiality": { "$ref": "#/$defs/cia_level" },
+        "integrity": { "$ref": "#/$defs/cia_level" },
+        "availability": { "$ref": "#/$defs/cia_level" }
+      }
+    },
+    "entry": {
+      "type": "object",
+      "required": [
+        "id",
+        "principal",
+        "principal_type",
+        "target_resource",
+        "target_tier",
+        "access_level"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "principal": { "type": "string" },
+        "principal_type": {
+          "type": "string",
+          "enum": ["human_standard", "pam_jit_group", "service_account"]
+        },
+        "target_resource": { "type": "string" },
+        "target_tier": {
+          "type": "string",
+          "enum": ["tier-0", "tier-1", "non-prod"]
+        },
+        "access_level": {
+          "type": "string",
+          "enum": [
+            "read",
+            "ssh_standard",
+            "ssh_sudo",
+            "rdp_admin",
+            "prod_deploy",
+            "audit_log_admin"
+          ]
+        },
+        "max_session_hours": { "type": "integer", "minimum": 1 },
+        "business_owner": { "type": "string" },
+        "review_date": { "type": "string" }
+      }
+    }
+  }
+}
