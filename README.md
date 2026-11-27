@@ -8,12 +8,13 @@
 
 ## 1. Executive Summary
 
-Moving an authorization matrix out of Excel spreadsheets into an automated workflow solves *data entry and provisioning*, but it does not automatically solve **governance, content quality, compliance verification, or drift detection**. When an entire IAM department reviews authorization matrices manually, institutional knowledge ("more than 10 NPAs in one matrix looks wrong", "High CIA systems need PAM/JIT and 4-eyes") stays trapped in reviewers' heads.
+Moving an authorization matrix out of Excel spreadsheets into an automated workflow solves *data entry and provisioning*, but it does not automatically solve **governance, content quality, policy compliance, or ongoing SOLL hygiene**. When an entire IAM department reviews authorization matrices manually, institutional knowledge ("more than 10 NPAs in one matrix looks wrong", "High [CIA-rating](#11-key-terms--public-references) (Confidentiality, Integrity, Availability) systems need PAM/JIT and 4-eyes") stays trapped in reviewers' heads.
 
-Two architectural principles unlock Policy as Code for Enterprise IAM:
+Three architectural principles unlock Policy as Code for Enterprise IAM:
 
-1. **Separate Verification/Governance from Matrix Storage:** Keep the matrix as **structured data** (in your existing automated IAM tool, YAML/JSON, or CUE) and keep `.rego` strictly for **policy logic** — never store raw access rows as `.rego` code.
-2. **Use One Policy Engine Across Four Progressive Layers:** Combine **Schema validation**, **Static Content Analysis (heuristics & CIA-driven rules)**, **Dynamic Context-Enriched Checks** (at request time), and **Periodic TSCM Sweeps** (continuous compliance across all active matrices).
+1. **Position Policy as Code Upstream of SOLL-IST (`Policy -> SOLL -> IST`):** SOLL-IST reconciliation proves that live systems (`IST`) match the approved matrix (`SOLL`), but it cannot tell whether `SOLL` itself is safe. OPA sits **upstream** to verify `SOLL` against security and IAM policies before approval and provisioning.
+2. **Separate Verification/Governance from Matrix Storage:** Keep the matrix as **structured data** (in your existing automated IAM tool, YAML/JSON, or CUE) and keep `.rego` strictly for **policy logic** — never store raw access rows as `.rego` code.
+3. **Use One Policy Engine Across Four Progressive Layers:** Combine **Schema validation**, **Static Content Analysis (heuristics & CIA-driven rules)**, **Dynamic SOLL Context Verification** (at request time), and **Periodic TSCM Sweeps** (ongoing SOLL hygiene & policy-compliance audits across all active matrices).
 
 ### Key Recommendations
 
@@ -26,21 +27,69 @@ Two architectural principles unlock Policy as Code for Enterprise IAM:
 
 ---
 
-## 2. The Four-Layer Verification & Continuous Compliance Model
+## 2. Positioning: Matrix Policy-as-Code vs. SOLL-IST Reconciliation
+
+A frequent point of confusion in Enterprise IAM is equating **Authorization Matrix Policy as Code** with **SOLL-IST reconciliation** (Desired State vs. Actual State). They are **not the same capability** — they solve two different halves of the governance loop:
+
+![Closed-Loop IAM Governance: Policy -> SOLL -> IST](docs/images/policy-soll-ist-closed-loop.jpg)
+
+```mermaid
+flowchart LR
+  subgraph UPSTREAM["UPSTREAM: Matrix Approval Policy as Code (Is SOLL safe & compliant?)"]
+    P["Security & IAM Policies<br/>(OPA / Rego Rules)"] -->|"Evaluates"| SOLL["Authorization Matrix (SOLL)<br/>Desired State • Guardrails • Heuristics • CIA • Approval"]
+  end
+
+  subgraph DOWNSTREAM["DOWNSTREAM: SOLL-IST Reconciliation (Does IST match SOLL?)"]
+    IST["Live Target Systems (IST)<br/>AD / Entra • PAM • Servers • Cloud"]
+  end
+
+  SOLL -->|"Automated Provisioning"| IST
+  SOLL <-->|"SOLL-IST Drift Check"| IST
+```
+
+### Why SOLL-IST Alone Is Not Enough
+
+- **SOLL-IST Reconciliation** compares the **approved Authorization Matrix (`SOLL`)** against **live target systems (`IST`)** to detect unauthorized manual changes, shadow admins, or failed provisioning.
+- **The Blind Spot:** SOLL-IST blindly trusts that `SOLL` itself is safe. If a poorly scoped or non-compliant matrix (e.g., a service account with interactive `ssh_sudo`, a Tier-0 wildcard, a nested-group SoD conflict, or 25 NPAs bundled into one matrix) gets approved, **SOLL-IST will report 100% GREEN** — faithfully enforcing an insecure desired state.
+- **Authorization Matrix Policy as Code (OPA)** sits **upstream** of SOLL-IST to verify `SOLL` against security and IAM policies *before* approval and provisioning.
+
+| Dimension | Authorization Matrix Policy as Code (OPA) | SOLL-IST Reconciliation |
+| :--- | :--- | :--- |
+| **Core Question** | *"Is `SOLL` itself safe, compliant, and properly approved?"* | *"Does actual reality (`IST`) match `SOLL`?"* |
+| **What It Compares** | Proposed/Existing Matrix (`SOLL`) vs. **Security/IAM Policy** | Approved Matrix (`SOLL`) vs. **Live Target State (`IST`)** |
+| **Lifecycle Position** | **Upstream** (design, change approval, periodic policy audit) | **Downstream** (post-provisioning enforcement & drift detection) |
+| **Example Catch** | *"Service account requests `ssh_sudo` on a High-CIA server — block approval."* | *"User `j.doe` has `ssh_sudo` on `prod-db-01` outside the matrix — revoke."* |
+| **Blind Spot Without the Other** | Does not inspect `/etc/sudoers` or live ACLs for out-of-band tampering | Marks a dangerous matrix as "100% compliant" whenever `IST == SOLL` |
+
+> **Complementary Closed Loop (`Policy -> SOLL -> IST`):** Static guardrails, heuristics, CIA rules, and approval routing have **zero overlap** with SOLL-IST. Context-enriched TSCM checks (Layers 2–3) complement SOLL-IST by validating the *metadata and lifecycle health of `SOLL`* (CMDB server status, NPA password rotation, dormancy, CIA drift) while SOLL-IST validates *entitlement parity on target systems*. Together, **`Policy -> Valid SOLL -> Matching IST`** delivers end-to-end provable compliance.
+
+---
+
+## 3. The Four-Layer Verification & Continuous Compliance Model
 
 ![Four-Layer Enterprise IAM Policy-as-Code Architecture](docs/images/four-layer-opa-architecture.jpg)
+
+```mermaid
+flowchart LR
+  L0["Layer 0: Schema Check<br/>JSON Schema / CUE"] --> L1["Layer 1: Static Content & CIA<br/>Heuristics (>10 NPAs) • CIA Rating • SoD"]
+  L1 --> L2["Layer 2: SOLL Context Check<br/>AD / PAM / CMDB Snapshot -> Pure OPA"]
+  L2 --> L3["Layer 3: Periodic TSCM Sweep<br/>SOLL Hygiene • Policy Audit • Dormant NPAs"]
+  L3 --> D1["DENY (Block)"]
+  L3 --> D2["WARN (Review)"]
+  L3 --> D3["AUTO-APPROVE / ROUTE"]
+```
 
 ```text
 +-------------------------------------------------------------------------+
 | LAYER 0: Syntax & Schema Validation (JSON Schema / CUE)                 |
-| "Is the matrix technically well-formed?"                                |
+| "Is the proposed SOLL matrix technically well-formed?"                  |
 |  - Required fields, valid data types, allowed enums (CIA, tiers, types) |
 +-------------------------------------------------------------------------+
                                    |
                                    v
 +-------------------------------------------------------------------------+
 | LAYER 1: Static Content Analysis in OPA (zero external calls)           |
-| "Does the content make sense, and does it meet CIA & IAM guardrails?"   |
+| "Does SOLL make sense, and does it meet CIA & IAM guardrails?"          |
 |  - Content Heuristics / Anomalies (WARN -> forces human review):        |
 |    * > 10 Non-Personal Accounts (NPAs) in one matrix -> suspicious      |
 |    * > 10 target machines/resources in one rule/matrix -> over-scoped   |
@@ -57,8 +106,8 @@ Two architectural principles unlock Policy as Code for Enterprise IAM:
                                    |
                                    v
 +-------------------------------------------------------------------------+
-| LAYER 2: Dynamic Context-Enriched Analysis (Change / Request Time)      |
-| "Does this request match live reality in AD, PAM, CMDB, and HR?"        |
+| LAYER 2: Dynamic SOLL Context Verification (Change / Request Time)      |
+| "Are the accounts, assets & CIA ratings in SOLL valid in AD & CMDB?"    |
 |  - External enrichment script builds context_snapshot.json              |
 |  - OPA checks:                                                          |
 |    * Does the NPA exist and is it enabled in AD/Entra?                  |
@@ -70,20 +119,23 @@ Two architectural principles unlock Policy as Code for Enterprise IAM:
                                    |
                                    v
 +-------------------------------------------------------------------------+
-| LAYER 3: Periodic TSCM Sweep (Daily / Weekly / Monthly)                 |
-| "Do ALL existing matrices still comply with policy AND reality?"        |
+| LAYER 3: Periodic TSCM Sweep — SOLL Hygiene & Policy-Compliance Audit   |
+| "Do ALL approved SOLL matrices still comply with policy & asset state?" |
 |  - Runs the exact same OPA rules + fresh context across ALL matrices    |
 |  - Outputs structured findings (severity, owner, remediation)           |
 |  - Catches dormant NPAs, expired rotations, decommissioned servers,     |
-|    departed owners, and newly introduced security policy drift          |
+|    departed owners, and matrices invalidated by newly added policies    |
+|  (Note: Entitlement drift on target hosts remains downstream SOLL-IST.) |
 +-------------------------------------------------------------------------+
 ```
 
 ---
 
-## 3. Why Three Decision Outcomes Matter (`deny`, `warn`, `approval`)
+## 4. Why Three Decision Outcomes Matter (`deny`, `warn`, `approval`)
 
 ![IAM Policy-as-Code & TSCM Review Console Mockup](docs/images/opa-iam-review-dashboard.jpg)
+
+*Illustrative console mockup: the left panel shows upstream change-request gating on `SOLL`; the right panel shows periodic TSCM hygiene findings on `SOLL` metadata (decommissioned CMDB hosts, dormant NPAs, and CIA classification mismatches) — complementary to downstream SOLL-IST entitlement drift checks.*
 
 A common misconception is that Policy as Code can only say "allow" or "deny." For an Enterprise IAM team, three distinct outputs make OPA dramatically more practical:
 
@@ -120,7 +172,7 @@ Most manual IAM matrix reviews rely on experienced engineers spotting patterns t
 
 ---
 
-## 4. Dynamic Context Enrichment: Why Enrich *Before* OPA (Not `http.send`)
+## 5. Dynamic Context Enrichment: Why Enrich *Before* OPA (Not `http.send`)
 
 Although OPA provides an `http.send` built-in, calling live AD, PAM, or CMDB APIs directly from inside `.rego` policies is an anti-pattern at enterprise scale:
 
@@ -131,17 +183,17 @@ Although OPA provides an `http.send` built-in, calling live AD, PAM, or CMDB API
 | **Testability** | Requires HTTP mocking or fragile integration environments. | Trivially unit-tested with static JSON fixtures via `opa test`. |
 | **Credential Isolation** | API tokens and auth logic leak into the policy engine. | OPA stays completely networkless; only the enrichment job holds read-only API credentials. |
 
-### High-Value Continuous TSCM Checks
+### High-Value Continuous TSCM Checks (SOLL Hygiene & Policy Audit)
 
-Running Layer 2 + Layer 3 on a daily, weekly, or monthly schedule turns OPA into a **Technical Security Compliance Monitoring (TSCM)** engine for IAM:
+Running Layer 2 + Layer 3 on a daily, weekly, or monthly schedule turns OPA into a **Technical Security Compliance Monitoring (TSCM)** audit over all approved `SOLL` matrices:
 
-- **NPA Lifecycle Hygiene:** Detect non-personal accounts that are disabled, missing, unused for >90 days (dormant cleanup candidates), or overdue for password/secret rotation.
-- **CMDB Reality & Drift Check:** Flag matrix entries pointing to decommissioned or unknown machines, or where the matrix claims `CIA = low` while the CMDB classifies the asset as `high`.
-- **Policy-Evolution Impact Analysis:** Whenever Security adds a new Rego rule (e.g., *"no standing RDP on `A=high` servers"*), a single TSCM sweep immediately reveals every existing matrix that is now out of compliance — grouped by `business_owner` for automated remediation tickets.
+- **NPA Lifecycle Hygiene:** Detect non-personal accounts referenced in `SOLL` that are disabled, missing, unused for >90 days (dormant cleanup candidates), or overdue for password/secret rotation.
+- **CMDB Asset & CIA Metadata Check:** Flag matrix entries pointing to decommissioned or unknown machines, or where the matrix claims `CIA = low` while the CMDB classifies the asset as `high`.
+- **Policy-Evolution Impact Analysis:** Whenever Security adds a new Rego rule (e.g., *"no standing RDP on `A=high` servers"*), a single TSCM sweep immediately reveals every existing `SOLL` matrix that is now out of compliance — grouped by `business_owner` for automated remediation tickets. *(Live entitlement drift on servers remains handled downstream by SOLL-IST reconciliation.)*
 
 ---
 
-## 5. Tool Landscape Comparison
+## 6. Tool Landscape Comparison
 
 ### A. Tools for Auto-Verifying & Gating an Authorization Matrix
 
@@ -164,41 +216,75 @@ Running Layer 2 + Layer 3 on a daily, weekly, or monthly schedule turns OPA into
 
 ---
 
-## 6. Reference Architectures
+## 7. Reference Architectures
 
 ### Option A: Non-Invasive Policy Gate + Periodic TSCM (Lowest Friction)
 
+```mermaid
+flowchart TD
+  IAM["Existing Automated IAM Tool<br/>(proposed SOLL matrix / diff JSON)"] --> OPA["OPA / Rego Policy Engine<br/>(Guardrails + Heuristics + CIA + SOLL TSCM)"]
+  EXT["AD / Entra / PAM / CMDB / HR<br/>(enrichment script -> context snapshot)"] --> OPA
+  OPA --> GATE["Change Gate<br/>(deny / warn)"]
+  OPA --> ROUTE["Approval Routing<br/>(Owner / IAM Security)"]
+  OPA --> TSCM["TSCM SOLL Findings<br/>(Tickets per owner)"]
+  ROUTE -->|"Approved SOLL"| PROV["Automated Provisioning"]
+  PROV --> IST["Live Target Systems (IST)<br/>(AD / Entra / PAM / Servers)"]
+  IST <-->|"Downstream Entitlement Drift"| SOLLIST["SOLL-IST Reconciliation"]
+```
+
 ```text
 [Existing Automated IAM Tool]        [AD / Entra / PAM / CMDB / HR]
+  (proposed SOLL / diff JSON)               (enrichment script)
              |                                      |
-             | export matrix / diff JSON            | enrichment script
              v                                      v
       +---------------------------------------------------+
-      |              OPA / Rego Policy Engine             |
-      |  (Guardrails + Heuristics + CIA + Context/TSCM)   |
+      |              OPA / Rego Policy Engine             |  <-- UPSTREAM:
+      |  (Guardrails + Heuristics + CIA + SOLL TSCM)      |      Validates SOLL
       +---------------------------------------------------+
         |                       |                       |
         v                       v                       v
-  [Change Gate]         [Approval Routing]      [TSCM Findings]
+  [Change Gate]         [Approval Routing]      [TSCM SOLL Audit]
   deny / warn           Owner / IAM Security    Tickets per owner
+                                |
+                                | Approved SOLL
+                                v
+                      [Automated Provisioning]
+                                |
+                                v
+                   [Live Target Systems (IST)]  <-->  [SOLL-IST Reconciliation]
+                                                      (Downstream Entitlement Drift)
 ```
 
 ### Option B: Git-Backed Matrix (YAML/JSON or CUE + OPA)
+
+```mermaid
+flowchart TD
+  GIT["Git: matrix/*.yaml or *.cue<br/>(Proposed SOLL)"] --> L0["Layer 0: Schema / cue vet"]
+  L0 --> OPA["Layer 1-3: OPA / Rego"]
+  EXT["AD / CMDB Enrichment<br/>(context snapshot)"] --> OPA
+  OPA --> PROV["Provisioning: AD/Entra, PAM, TF<br/>(Approved SOLL -> IST)"]
+  OPA --> AUDIT["Auditor HTML/CSV + TSCM SOLL Audit"]
+  PROV --> IST["Live Target Systems (IST)"]
+  IST <-->|"Downstream Entitlement Drift"| SOLLIST["SOLL-IST Reconciliation"]
+```
 
 ```text
 [Git: matrix/*.yaml or *.cue] --> [Layer 0: Schema / cue vet]
                                               |
                                               v
-[AD / CMDB Enrichment] ----------> [Layer 1-3: OPA / Rego]
+[AD / CMDB Enrichment] ----------> [Layer 1-3: OPA / Rego]    <-- UPSTREAM (SOLL)
                                               |
                      +------------------------+------------------------+
                      v                                                 v
         [Provisioning: AD/Entra, PAM, TF]                 [Auditor HTML/CSV + TSCM]
+                     |
+                     v
+        [Live Target Systems (IST)]  <-->  [SOLL-IST Reconciliation]  <-- DOWNSTREAM (IST)
 ```
 
 ---
 
-## 7. Concrete Example: Data + OPA Policies
+## 8. Concrete Example: Data + OPA Policies
 
 ### Example Matrix Entry with CIA Rating (JSON/YAML)
 
@@ -258,7 +344,7 @@ tscm_findings contains finding if {
 
 ---
 
-## 8. Suggested Phased Adoption Roadmap
+## 9. Suggested Phased Adoption Roadmap
 
 1. **Phase 1 — Shadow-Mode Static & Heuristic Verification (Week 1–2)**
    - Export snapshots from the existing automated matrix tool as JSON.
@@ -275,27 +361,46 @@ tscm_findings contains finding if {
 
 ---
 
-## 9. Runnable OPA / Rego Proof of Concept (Included in This Repository)
+## 10. Runnable OPA / Rego Proof of Concept (Included in This Repository)
 
-All four layers are implemented as runnable, tested OPA/Rego (`import rego.v1`) policies in this repository so they can be demonstrated live with zero external dependencies:
+All four upstream layers are implemented as a runnable, zero-dependency Proof of Concept in this repository so they can be demonstrated live in under two minutes:
 
-- **Policies & Unit Tests:** [policies/guardrails.rego](policies/guardrails.rego), [policies/approval.rego](policies/approval.rego), [policies/context_tscm.rego](policies/context_tscm.rego) (+ `*_test.rego`)
-- **Demo Fixtures & Walkthrough:** [examples/README.md](examples/README.md) and [examples/data/](examples/data/)
+- **Layer 0 Schema:** [schemas/matrix.schema.json](schemas/matrix.schema.json)
+- **Layer 1–3 Policies & 20 Unit Tests:** [policies/guardrails.rego](policies/guardrails.rego), [policies/approval.rego](policies/approval.rego), [policies/context_tscm.rego](policies/context_tscm.rego) (+ `*_test.rego`)
+- **Executable 4-Layer CLI & 6 Automated Tests:** [scripts/iam_matrix_check.py](scripts/iam_matrix_check.py) (stdlib-only Python 3, CI exit codes `0`/`1`/`2`, `--save-snapshot` audit replay)
+- **Demo Fixtures & Mock AD/CMDB Sources:** [examples/README.md](examples/README.md), [examples/data/](examples/data/), and [examples/mock_sources/](examples/mock_sources/)
 
 ```bash
-# Run all automated policy unit tests
-opa test -v policies/
+# Run the complete 4-layer live demo (Tier-0/CIA, heuristics WARN, DENY/SoD, AD+CMDB TSCM)
+make run-demo
 
-# Evaluate a blocked change (service-account SSH, wildcard, transitive SoD)
-opa eval -d policies -i examples/data/diff_violations.json "data.iam.matrix.approval.decision"
+# Run all automated tests (lint + 20 OPA Rego unit tests + 6 CLI pipeline tests)
+make lint && make test && make test-cli
 
-# Evaluate a heuristics warning (>10 NPAs, >10 resources, shared-* account)
-opa eval -d policies -i examples/data/diff_heuristics_warn.json "data.iam.matrix.approval.decision"
-
-# Evaluate a dynamic context-enriched TSCM sweep (AD + CMDB snapshot)
-opa eval -d policies -i examples/data/tscm_sweep_enriched.json "data.iam.matrix.tscm.report"
+# Run the CLI directly with external AD & CMDB enrichment and save an audit snapshot
+python3 scripts/iam_matrix_check.py \
+  --matrix examples/data/tscm_sweep_enriched.json \
+  --ad examples/mock_sources/ad_accounts.json \
+  --cmdb examples/mock_sources/cmdb_machines.json \
+  --save-snapshot /tmp/audit_snapshot.json
 ```
 
 ---
 
-*Author: **Arjan Filius** | Date: **24 November 2026***
+## 11. Key Terms & Public References
+
+| Term | Meaning in This Document | Public Reference |
+| :--- | :--- | :--- |
+| **SOLL-IST Reconciliation** | Comparing **Desired State (`SOLL`)** (approved authorization matrix) against **Actual State (`IST`)** on live systems to detect **entitlement drift** — downstream of Matrix Policy-as-Code. | [NIST SP 800-53 — CM-3 / AC-2 Account Management](https://csrc.nist.gov/projects/cprt/catalog#/cprt/framework/version/SP_800_53_5_1_1/home?element=AC-02) |
+| **CIA Rating (CIA Triad)** | Information security classification across **Confidentiality, Integrity, and Availability** (`low` / `medium` / `high`), used to scale IAM controls and approval rigor (known in Dutch frameworks as *BIV*: *Beschikbaarheid, Integriteit, Vertrouwelijkheid*). | [NIST FIPS 199 — Security Categorization](https://csrc.nist.gov/pubs/fips/199/final) · [NIST CSRC — CIA Triad](https://csrc.nist.gov/glossary/term/cia_triad) |
+| **OPA & Rego** | **Open Policy Agent** — CNCF-graduated general-purpose Policy-as-Code engine using the declarative **Rego** language. | [Open Policy Agent Docs](https://www.openpolicyagent.org/docs/latest/) · [Rego Policy Language](https://www.openpolicyagent.org/docs/latest/policy-language/) |
+| **Segregation of Duties (SoD)** | Control preventing a single identity or group from holding conflicting privileges (e.g., deploying code and administering audit logs). | [NIST SP 800-53 — AC-5 Separation of Duties](https://csrc.nist.gov/projects/cprt/catalog#/cprt/framework/version/SP_800_53_5_1_1/home?element=AC-05) |
+| **PAM / JIT** | **Privileged Access Management** & **Just-in-Time** elevation — time-bound, vaulted privileged access replacing standing admin rights. | [NIST CSRC — Privileged Account / Least Privilege](https://csrc.nist.gov/glossary/term/least_privilege) |
+| **Enterprise Access / Tiering (Tier-0)** | Isolating high-value identity/control-plane assets (**Tier-0**) from general servers (**Tier-1**) and workstations/non-prod to stop lateral movement. | [Microsoft Enterprise Access Model](https://learn.microsoft.com/en-us/security/privileged-access-management/privileged-access-access-model) |
+| **NPA** | **Non-Personal Account** (service account, batch account, or machine identity) not tied to an individual human user. | [NIST SP 800-53 — IA-2 / IA-4 Identifier Management](https://csrc.nist.gov/projects/cprt/catalog#/cprt/framework/version/SP_800_53_5_1_1/home?element=IA-04) |
+| **TSCM / Continuous Monitoring** | **Technical Security Compliance Monitoring** — periodic automated audits of `SOLL` (matrix metadata, NPA lifecycle, CMDB asset/CIA status, and policy evolution), complementary to downstream SOLL-IST entitlement drift checks. | [NIST SP 800-137 — Continuous Monitoring (ISCM)](https://csrc.nist.gov/pubs/sp/800/137/final) |
+| **CUE & Cedar** | Complementary Policy/Data-as-Code languages: **CUE** for schema-constrained configuration; **Cedar** for formally verifiable application AuthZ. | [CUE Language](https://cuelang.org/) · [Cedar Policy Language](https://www.cedarpolicy.com/) |
+
+---
+
+*Author: **Arjan Filius** | Date: **27 November 2026***

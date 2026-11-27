@@ -198,3 +198,10 @@ a {
   color: #0F766E;
   text-decoration: none;
 }
+
+/* Hide raw editable Mermaid source blocks in printed PDF (rendered via AI visuals instead) */
+pre.mermaid,
+div.sourceCode.mermaid,
+details.mermaid-source {
+  display: none;
+}
