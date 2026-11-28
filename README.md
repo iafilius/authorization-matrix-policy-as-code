@@ -37,12 +37,14 @@ A frequent point of confusion in Enterprise IAM is equating **Authorization Matr
 flowchart LR
   subgraph UPSTREAM["UPSTREAM: Matrix Approval & Policy Governance (Is SOLL safe & compliant?)"]
     DEPT["Security & IAM Governance Dept."] -->|"writes & maintains"| POLICY["Written Security & IAM Policies<br/>(Human-readable standards: CIA • SoD • Tiering)"]
-    POLICY -->|"codified as"| OPA["Policy as Code (OPA / Rego)<br/>Automated Gate"]
+    POLICY -->|"codified as"| OPA["Policy as Code (OPA / Rego)<br/>Automated Gate & Periodic TSCM"]
     POLICY -->|"guides"| OP["IAM Operator / Maintainer<br/>Human-in-the-Loop Review"]
     OPA -.->|"WARN / Edge Case /<br/>Cannot Auto-Decide"| OP
     OWNER["(Delegated) Matrix Owner"] -->|"proposes & owns"| SOLL["Authorization Matrix (SOLL)<br/>Desired State"]
     OPA -->|"Evaluates"| SOLL
     OP -->|"Evaluates"| SOLL
+    OPA -.->|"Feedback (Approve/Reject) &<br/>Proactive Action Requests (Policy Change / TSCM)"| OWNER
+    OP -.->|"Review Feedback /<br/>Action Request"| OWNER
   end
 
   subgraph DOWNSTREAM["DOWNSTREAM: SOLL-IST Reconciliation (Does IST match SOLL?)"]
@@ -57,7 +59,9 @@ flowchart LR
 
 - **Security & IAM Governance Dept.** authors and maintains the **Written Security & IAM Policies** (human-readable corporate standards for CIA ratings, SoD, Tier-0 isolation, and PAM/JIT).
 - **Policy as Code (OPA / Rego)** and the **IAM Operator / Maintainer** both enforce that *same* written policy: OPA automates routine and hard-guardrail checks, and escalates `WARN` heuristics, exceptions, or edge cases it cannot auto-decide to the human operator (whose recurring decisions can later be codified back into Rego).
-- **(Delegated) Matrix Owner** (System / Application Owner) proposes, owns, and recertifies the **Authorization Matrix (`SOLL`)**.
+- **(Delegated) Matrix Owner** (System / Application Owner) proposes, owns, and recertifies the **Authorization Matrix (`SOLL`)** — and receives **two kinds of feedback**:
+  1. *Change-time feedback:* immediate approve/reject/warning responses during a matrix change or renewal.
+  2. *Proactive action requests:* out-of-band remediation tasks triggered by periodic TSCM sweeps whenever corporate policies tighten over time or CMDB/AD context changes (e.g., dormant NPA, decommissioned server, or CIA upgrade), even when no matrix renewal is underway.
 - **SOLL-IST Reconciliation** runs downstream after provisioning to verify that live target systems (`IST`) match the approved `SOLL`.
 
 ### Why SOLL-IST Alone Is Not Enough
