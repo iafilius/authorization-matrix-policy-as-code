@@ -35,17 +35,30 @@ A frequent point of confusion in Enterprise IAM is equating **Authorization Matr
 
 ```mermaid
 flowchart LR
-  subgraph UPSTREAM["UPSTREAM: Matrix Approval Policy as Code (Is SOLL safe & compliant?)"]
-    P["Security & IAM Policies<br/>(OPA / Rego Rules)"] -->|"Evaluates"| SOLL["Authorization Matrix (SOLL)<br/>Desired State • Guardrails • Heuristics • CIA • Approval"]
+  subgraph UPSTREAM["UPSTREAM: Matrix Approval & Policy Governance (Is SOLL safe & compliant?)"]
+    DEPT["Security & IAM Governance Dept."] -->|"writes & maintains"| POLICY["Written Security & IAM Policies<br/>(Human-readable standards: CIA • SoD • Tiering)"]
+    POLICY -->|"codified as"| OPA["Policy as Code (OPA / Rego)<br/>Automated Gate"]
+    POLICY -->|"guides"| OP["IAM Operator / Maintainer<br/>Human-in-the-Loop Review"]
+    OPA -.->|"WARN / Edge Case /<br/>Cannot Auto-Decide"| OP
+    OWNER["(Delegated) Matrix Owner"] -->|"proposes & owns"| SOLL["Authorization Matrix (SOLL)<br/>Desired State"]
+    OPA -->|"Evaluates"| SOLL
+    OP -->|"Evaluates"| SOLL
   end
 
   subgraph DOWNSTREAM["DOWNSTREAM: SOLL-IST Reconciliation (Does IST match SOLL?)"]
     IST["Live Target Systems (IST)<br/>AD / Entra • PAM • Servers • Cloud"]
   end
 
-  SOLL -->|"Automated Provisioning"| IST
+  SOLL -->|"Automated Provisioning<br/>(Approved SOLL)"| IST
   SOLL <-->|"SOLL-IST Drift Check"| IST
 ```
+
+### Roles & Ownership Across the Loop
+
+- **Security & IAM Governance Dept.** authors and maintains the **Written Security & IAM Policies** (human-readable corporate standards for CIA ratings, SoD, Tier-0 isolation, and PAM/JIT).
+- **Policy as Code (OPA / Rego)** and the **IAM Operator / Maintainer** both enforce that *same* written policy: OPA automates routine and hard-guardrail checks, and escalates `WARN` heuristics, exceptions, or edge cases it cannot auto-decide to the human operator (whose recurring decisions can later be codified back into Rego).
+- **(Delegated) Matrix Owner** (System / Application Owner) proposes, owns, and recertifies the **Authorization Matrix (`SOLL`)**.
+- **SOLL-IST Reconciliation** runs downstream after provisioning to verify that live target systems (`IST`) match the approved `SOLL`.
 
 ### Why SOLL-IST Alone Is Not Enough
 
@@ -403,4 +416,4 @@ python3 scripts/iam_matrix_check.py \
 
 ---
 
-*Author: **Arjan Filius** | Date: **27 November 2026***
+*Author: **Arjan Filius** | Date: **28 November 2026***
